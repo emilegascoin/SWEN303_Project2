@@ -1,4 +1,4 @@
-import { IonBadge, IonButton, IonButtons, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent, IonNote, IonPage, IonRow, IonSearchbar, IonTitle, IonToolbar } from "@ionic/react";
+import { IonSelect, IonSelectOption, IonBadge, IonButton, IonButtons, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent, IonNote, IonPage, IonRow, IonSearchbar, IonTitle, IonToolbar } from "@ionic/react";
 import { cart, chevronBackOutline, searchOutline, heart } from "ionicons/icons";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router"
@@ -27,16 +27,42 @@ const CategoryProducts = () => {
     const [ searchResults, setsearchResults ] = useState([]);
     const [ amountLoaded, setAmountLoaded ] = useState(6);
 
+    // New state variable 'sortOrder' added. It will hold the current sorting order of the products
+    const [ sortOrder, setSortOrder ] = useState('Low to High');
+
+    // New function 'sortProducts'. It sorts an array of products based on a given sorting order
+    const sortProducts = (products, order) => {
+        return [...products].sort((a, b) => {
+            if (order === 'Low to High') {
+                return parseFloat(a.price.replace("£", "")) - parseFloat(b.price.replace("£", ""));
+            } else if (order === 'High to Low') {
+                return parseFloat(b.price.replace("£", "")) - parseFloat(a.price.replace("£", ""));
+            } else if (order === 'A to Z') {
+                return a.name.localeCompare(b.name);
+            } else {
+                return b.name.localeCompare(a.name);
+            }
+        });
+    };
+
     useEffect(() => {
 
         const categorySlug = params.slug;
         const tempCategory = products.filter(p => p.slug === categorySlug)[0];
+        // Usage of the new 'sortProducts' function
+        const sortedProducts = sortProducts(tempCategory.products, sortOrder);
+
         setCategory(tempCategory);
-        setsearchResults(tempCategory.products);
-    }, [ params.slug ]);
+        setsearchResults(sortedProducts);
+    // New dependencies 'sortOrder' and 'products' added to the dependency array
+    }, [ params.slug, sortOrder, products ]);
+
+    // New function 'handleSortOrderChange'. It updates the 'sortOrder' state when the sort order is changed
+    const handleSortOrderChange = (e) => {
+        setSortOrder(e.target.value);
+    }
 
     const fetchMore = async (e) => {
-
 		//	Increment the amount loaded by 6 for the next iteration
 		setAmountLoaded(prevAmount => (prevAmount + 6));
 		e.target.complete();
@@ -49,10 +75,11 @@ const CategoryProducts = () => {
         if (searchVal !== "") {
             // Added .Replace to remove spaces
             const tempResults = category.products.filter(p => p.name.replace(/\s/g, '').toLowerCase().includes(searchVal.toLowerCase()));
-            setsearchResults(tempResults);
+            // Usage of the new 'sortProducts' function
+            setsearchResults(sortProducts(tempResults, sortOrder));
         } else {
-
-            setsearchResults(category.products);
+            // Usage of the new 'sortProducts' function
+            setsearchResults(sortProducts(category.products, sortOrder));
         }
     }
 
@@ -91,6 +118,14 @@ const CategoryProducts = () => {
 			<IonContent fullscreen>
 
                 <IonSearchbar className={ styles.search } onKeyUp={ search } placeholder="Try 'high back'" searchIcon={ searchOutline } animated={ true } />
+
+                {/* New 'IonSelect' component. It lets the user select a sorting order for the products */}
+                <IonSelect value={sortOrder} placeholder="Sort By" onIonChange={handleSortOrderChange}>
+                    <IonSelectOption value='Low to High'>Price Low to High</IonSelectOption>
+                    <IonSelectOption value='High to Low'>Price High to Low</IonSelectOption>
+                    <IonSelectOption value='A to Z'>Product Name A to Z</IonSelectOption>
+                    <IonSelectOption value='Z to A'>Product Name Z to A</IonSelectOption>
+                </IonSelect>
 
                 <IonGrid>
 
